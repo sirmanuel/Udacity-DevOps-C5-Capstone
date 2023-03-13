@@ -5,8 +5,6 @@ orbs:
   # so you dont have to copy and paste it everywhere.
   # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/maven
   maven: circleci/maven@1.4.1
-  sonarqube: clicklogiq/sonarqube@1.0.1
-
 
 executors:
   openjdk17:
