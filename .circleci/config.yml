@@ -37,9 +37,9 @@ commands:
 workflows:
   default:
     jobs:
-      - adjust-versions
-      - build:
-          requires: [adjust-versions]
+#      - adjust-versions
+      - build
+ #         requires: [adjust-versions]
       - test:
           requires:
             - build
