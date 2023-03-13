@@ -5,7 +5,7 @@ orbs:
 workflows:
   default:
     jobs:
-      - update-version
+      - set-application-version
 #      - build-backend
 #      - test-backend:
 #          requires: [build-backend]
@@ -61,7 +61,7 @@ jobs: # a collection of steps
 
 
 
-    update-version: # runs not using Workflows must have a `build` job as entry point
+    set-application-version: # runs not using Workflows must have a `build` job as entry point
       docker:
         # CircleCI maintains a library of pre-built images
         # documented at https://circleci.com/docs/2.0/circleci-images/
