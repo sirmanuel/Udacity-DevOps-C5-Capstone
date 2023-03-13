@@ -40,11 +40,11 @@ workflows:
   default:
     jobs:
       - adjust-versions
-      - build
+      - build:
           requires: [adjust-versions]
       - test:
           requires: [build]
-      - integration-test
+      - integration-test:
           requires: [build]
 #      - scan-backend:
 #          requires: [build-backend]
