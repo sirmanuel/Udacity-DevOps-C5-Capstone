@@ -5,7 +5,7 @@ orbs:
 workflows:
   default:
     jobs:
-      - set-application-version
+      - adjust-versions
 #      - build-backend
 #      - test-backend:
 #          requires: [build-backend]
@@ -61,7 +61,7 @@ jobs: # a collection of steps
 
 
 
-  set-application-version: # runs not using Workflows must have a `build` job as entry point
+  adjust-versions: # runs not using Workflows must have a `build` job as entry point
     docker:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -79,12 +79,51 @@ jobs: # a collection of steps
           command: |
             mvn -version
       - run:
-          name: Cut new release
           command: |
+            
+            BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+            echo $BRANCH_NAME
+            
             # assemble current and new version numbers
-            OLD_VERSION=$(mvn -s .circleci/settings.xml -q \
-              -Dexec.executable="echo" -Dexec.args='${project.version}' \
-              --non-recursive org.codehaus.mojo:exec-maven-plugin:1.3.1:exec)
-            NEW_VERSION="${OLD_VERSION/-SNAPSHOT/}"
-            echo "Releasing $OLD_VERSION as $NEW_VERSION"
-    
+            OLD_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+            echo $OLD_VERSION
+            
+            MAJ_VERSION=$(echo "$OLD_VERSION" | cut -d '.' -f 1)
+            MIN_VERSION=$(echo "$OLD_VERSION" | cut -d '.' -f 2)
+            PATCH_VERSION=$(echo "$OLD_VERSION" | cut -d '.' -f 3)
+            
+            
+            if [[ "$BRANCH_NAME" == 'master' ]];
+            then
+              if [[ "$OLD_VERSION" == *-SNAPSHOT ]];
+              then
+                # increment minor version number
+                NEW_PATCH_VERSION=$(($PATCH_VERSION + 1))
+                MASTER_VERSION="$MAJ_VERSION.$MIN_VERSION.$NEW_PATCH_VERSION"
+                mvn versions:set -DnewVersion=$MASTER_VERSION
+              else
+                # TODO How to update - undefined number incrementation 
+                echo "No version update is made";
+              fi;
+            
+              exit 0;
+            fi
+            
+            # increment minor version number
+            NEW_PATCH_VERSION=$(($PATCH_VERSION + 1))
+            DEV_VERSION="$MAJ_VERSION.$MIN_VERSION.$NEW_PATCH_VERSION-$BRANCH_NAME-SNAPSHOT"
+            
+            echo "Releasing $OLD_VERSION as $DEV_VERSION"
+            
+            mvn versions:set -DnewVersion=$DEV_VERSION
+            
+            # setup git
+            #git config user.name "Release Script"
+            #git config user.email "builds@test.com"
+            
+            # commit and tag
+            #git add pom.xml
+            #git commit -m "release: $NEW_VERSION"
+            #git tag "$NEW_VERSION"
+
+          name: Cut new release
