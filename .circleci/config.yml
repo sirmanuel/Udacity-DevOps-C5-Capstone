@@ -50,6 +50,8 @@ workflows:
           requires:
             - test
             - integration-test
+      - docker-lint
+
 
 jobs: # a collection of steps
   build: # runs not using Workflows must have a `build` job as entry point
@@ -106,6 +108,27 @@ jobs: # a collection of steps
     steps:
       - checkout-restore-maven-cache
       - run: mvn checkstyle:checkstyle
+
+  docker-lint:
+    docker:
+      # Use the same Docker base as the project
+      - image: python:3.7.3-stretch
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+        name: install hadolint
+        command: |
+          wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+          chmod +x /bin/hadolint
+      # run lint!
+      - run:
+        name: run lint
+        command: |
+          # See local hadolint install instructions:   https://github.com/hadolint/hadolint
+          # This is linter for Dockerfiles
+          ./hadolint Dockerfile --ignore DL3042
+          
 
   adjust-versions: # runs not using Workflows must have a `build` job as entry point
     docker:
