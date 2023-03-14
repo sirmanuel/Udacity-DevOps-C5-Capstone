@@ -90,9 +90,9 @@ workflows:
   default:
     jobs:
       - save
-      - load:
-          requires:
-            - save
+#      - load:
+#          requires:
+#            - save
 
 
 
@@ -108,7 +108,7 @@ jobs: # a collection of steps
       - checkout
       - run: |
           NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
-          echo "export J_POM_VERSION=$NEW_VALUE" >> $BASH_ENV
+          echo "export J_POM_VERSION="$NEW_VALUE >> $BASH_ENV
       - run: |
           echo $NEW_VALUE
       - create-env-var:
