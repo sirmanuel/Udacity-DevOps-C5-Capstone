@@ -110,7 +110,7 @@ jobs: # a collection of steps
             echo $(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
             echo 1.5
             mvn -version
-            OLD_VERSION= mvn help:evaluate -Dexpression='project.version' -q -DforceStdout
+            OLD_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
             echo 1.6
             printenv OLD_VERSION
             echo 1.8
