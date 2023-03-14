@@ -10,11 +10,6 @@ executors:
   openjdk17:
     docker:
       - image: circleci/openjdk:17.0.1-jdk-buster
-      #- image: cimg/postgres:14.1
-      #  environment:
-      #    POSTGRES_USER: postgres
-      #    POSTGRES_PASSWORD: password
-      #    POSTGRES_DB: cfd
 
 commands:
   checkout-restore-maven-cache:
@@ -50,8 +45,13 @@ workflows:
           requires:
             - test
             - integration-test
-      - docker-lint
-
+      - docker-lint:
+          requires:
+            - build
+      - docker-build:
+          requires:
+            - docker-lint
+            - checkstyle
 
 jobs: # a collection of steps
   build: # runs not using Workflows must have a `build` job as entry point
@@ -60,18 +60,20 @@ jobs: # a collection of steps
       # documented at https://circleci.com/docs/2.0/circleci-images/
       # - image: circleci/postgres:9.4
       - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
-
     working_directory: ~/repo # directory where steps will run
     environment:
       # Customize the JVM maximum heap limit
       MAVEN_OPTS: -Xmx3200m
-
     steps: # a collection of executable commands
       - checkout-restore-maven-cache
       # Use mvn clean and package as the standard maven build phase
       - run:
           name: Build
           command: mvn -B -DskipTests clean package
+      - persist_to_workspace:
+          root: ~/repo/target/
+          paths:
+            - /*.jar
 
  #     - store_artifacts: # store the uberjar as an artifact
  #         # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
@@ -88,7 +90,6 @@ jobs: # a collection of steps
       - run:
           name: Test
           command: mvn test
-
       - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
           # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
           path: target/surefire-reports
@@ -119,13 +120,35 @@ jobs: # a collection of steps
           name: install hadolint
           command: |
             curl https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 --create-dirs -o tmp/hadolint &&\
-            chmod +x /tmp/hadolint
+            chmod +x tmp/hadolint
       - run:
-          name: run lint
+          name: docker lint
           command: |
             # See local hadolint install instructions:   https://github.com/hadolint/hadolint
             # This is linter for Dockerfiles
             ./tmp/hadolint Dockerfile --ignore DL3042
+
+  docker-build:
+    docker:
+      - image: circleci/openjdk:17.0.1-jdk-buster
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ~/repo/workspace
+      - run:
+          name: show workspace
+          command: |
+            pwd
+            ls
+            cd workspace
+            pwd
+            ls
+      - run:
+          name: docker build
+          command: |
+            docker build --build-arg JAR_FILE=~/repo/workspace/target/*.jar -t com/spring_demo .
+    # TODO upload docker image - use filter only for main
 
   adjust-versions: # runs not using Workflows must have a `build` job as entry point
     docker:
