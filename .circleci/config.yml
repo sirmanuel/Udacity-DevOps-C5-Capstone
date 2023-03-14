@@ -47,8 +47,9 @@ commands:
           paths:
             - << parameters.env_key >>.env
   load-env-var:
-    env_key:
-      type: string
+    parameters:
+      env_key:
+        type: string
     steps:
       - attach_workspace:
           at: .
