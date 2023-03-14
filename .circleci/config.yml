@@ -84,7 +84,7 @@ jobs: # a collection of steps
       - run: |
           NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
           echo "export POM_VERSION="$NEW_VALUE >> $BASH_ENV
-      - run: printenv POM_VERSION
+      - run: echo POM_VERSION
       - save-bash-env
 
 
@@ -106,19 +106,10 @@ jobs: # a collection of steps
       - run:
           name: Save app version to file
           command: |
-            echo 1
-            echo $(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-            echo 1.5
-            mvn -version
-            echo 1.6
-            OLD_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-            echo 1.7
-            echo $OLD_VERSION
-            echo 1.8
+            APP_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+            echo APP_VERSION
             touch ./target/appversion.txt
-            echo 2
-            $OLD_VERSION > ./target/appversion.txt
-            echo 3
+            APP_VERSION > ./target/appversion.txt
             cat ./target/appversion.txt
       - persist_to_workspace:
           root: target
@@ -193,7 +184,7 @@ jobs: # a collection of steps
           name: docker build
           command: |
             APP_VERSION=$(cat ~/workspace/appversion.txt)
-            printenv APP_VERSION
+            echo $APP_VERSION
             docker build --build-arg JAR_FILE=workspace/*.jar -t com/spring_demo:$APP_VERSION .
       - run:
           name: docker deploy
