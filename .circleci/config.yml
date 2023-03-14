@@ -71,7 +71,7 @@ jobs: # a collection of steps
           name: Build
           command: mvn -B -DskipTests clean package
       - persist_to_workspace:
-          root: ~/repo/target/
+          root: /target
           paths:
             - /*.jar
 
