@@ -168,10 +168,12 @@ jobs: # a collection of steps
       - run:
           name: docker build
           command: |
-            WORKSPACE_PATH= ~/workspace
-            APP_VERSION=$(cat $WORKSPACE_PATH/appversion.txt)
+            WORKSPACE_PATH= "~/workspace"
+            echo $WORKSPACE_PATH
+            APP_VERSION=$(cat "$WORKSPACE_PATH"/appversion.txt)
+            
             echo $APP_VERSION
-            $(docker build --build-arg JAR_FILE=$WORKSPACE_PATH/*.jar -t com/spring_demo:$APP_VERSION .)
+            $(docker build --build-arg JAR_FILE="$WORKSPACE_PATH"/*.jar -t com/spring_demo:"$APP_VERSION" .)
       - run:
           name: docker deploy
           command: |
