@@ -109,14 +109,15 @@ jobs: # a collection of steps
       - run: |
           NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
           echo $NEW_VALUE
+          echo "export J_POM_VERSION="$NEW_VALUE
           echo "export J_POM_VERSION="$NEW_VALUE >> $BASH_ENV
       - run: |
           echo $BASH_ENV
       - create-env-var:
           env_key: J_POM_VERSION
-          env_value: $NEW_VALUE
+          env_value: $BASH_ENV
       - run: |
-          echo $NEW_VALUE
+          echo $BASH_ENV
 
   load:
     docker:
