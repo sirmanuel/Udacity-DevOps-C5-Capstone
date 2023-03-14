@@ -66,10 +66,17 @@ jobs: # a collection of steps
       MAVEN_OPTS: -Xmx3200m
     steps: # a collection of executable commands
       - checkout-restore-maven-cache
-      # Use mvn clean and package as the standard maven build phase
-      - run:
+      - run: # Use mvn clean and package as the standard maven build phase
           name: Build
           command: mvn -B -DskipTests clean package
+      - run:
+          name: show workspace
+          command: |
+            pwd
+            ls
+            cd target
+            pwd
+            ls
       - persist_to_workspace:
           root: /target
           paths:
