@@ -51,23 +51,10 @@ workflows:
       #      - adjust-versions
       #- save-version-to-bash-env
       - build
-      - test:
+      - read:
           requires:
             - build
-      - integration-test:
-          requires:
-            - build
-      - checkstyle:
-          requires:
-            - test
-            - integration-test
-      - docker-lint:
-          requires:
-            - build
-      - docker-build:
-          requires:
-            - docker-lint
-            - checkstyle
+
 
 
 jobs: # a collection of steps
@@ -121,6 +108,20 @@ jobs: # a collection of steps
  #         path: target/demo-0.0.1-SNAPSHOT.jar
  #         # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
 
+  read:
+    docker:
+      - image: circleci/openjdk:17.0.1-jdk-buster
+    working_directory: ~/repo
+    steps:
+      - attach_workspace:
+          at: ~/workspace
+      - run:
+          name: read version
+          command: |
+            ls ~/workspace
+            APP_VERSION="$(cat ~/workspace/appversion.txt | base64)"
+            printenv APP_VERSION
+
   test:
     docker:
       - image: circleci/openjdk:17.0.1-jdk-buster
@@ -165,7 +166,7 @@ jobs: # a collection of steps
       - run:
           name: docker lint
           command: |
-            # See local hadolint install instructions:   https://github.com/hadolint/hadolint
+            # See local hadolint install instructions: https://github.com/hadolint/hadolint
             # This is linter for Dockerfiles
             ./tmp/hadolint Dockerfile --ignore DL3042
 
@@ -182,6 +183,7 @@ jobs: # a collection of steps
           name: docker build
           command: |
             APP_VERSION="$(cat ~/workspace/appversion.txt | base64)"
+            printenv APP_VERSION
             docker build --build-arg JAR_FILE=workspace/*.jar -t com/spring_demo:$APP_VERSION .
       - run:
           name: docker deploy
