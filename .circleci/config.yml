@@ -118,8 +118,8 @@ jobs: # a collection of steps
       - run:
           name: install hadolint
           command: |
-            wget -O ./tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            chmod +x ./tmp/hadolint
+            curl https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 --create-dirs -o tmp/hadolint &&\
+            chmod +x /tmp/hadolint
       - run:
           name: run lint
           command: |
