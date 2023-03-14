@@ -108,7 +108,7 @@ jobs: # a collection of steps
           command: |
             echo 1
             echo $(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-            APP_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+            APP_VERSION= $(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
             printenv APP_VERSION
             touch ./target/appversion.txt
             echo 2
