@@ -43,7 +43,7 @@ commands:
           echo "export << parameters.env_key >>=<< parameters.env_value >>" >> $BASH_ENV
       - run: |
           # verify; optional step
-          echo $<< parameters.env_key >>
+          printenv << parameters.env_key >>
       - run: |
           cp $BASH_ENV << parameters.env_key >>.env
       - persist_to_workspace:
@@ -90,9 +90,9 @@ workflows:
   default:
     jobs:
       - save
-#      - load:
-#          requires:
-#            - save
+      - load:
+          requires:
+            - save
 
 
 
@@ -106,17 +106,16 @@ jobs: # a collection of steps
     working_directory: ~/repo # directory where steps will run
     steps: # a collection of executable commands
       - checkout
-      - create-env-var2
-      - load-env-var2
       - run: |
-          export NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
-          printenv FOO
-          echo $NEW_VALUE
+          NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
+          echo "export J_POM_VERSION=$NEW_VALUE" >> $BASH_ENV
       - run: |
           echo $NEW_VALUE
       - create-env-var:
           env_key: J_POM_VERSION
           env_value: $NEW_VALUE
+      - run: |
+          echo $NEW_VALUE
 
   load:
     docker:
