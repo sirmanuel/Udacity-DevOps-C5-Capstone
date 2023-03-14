@@ -168,8 +168,11 @@ jobs: # a collection of steps
       - run:
           name: docker build
           command: |
-            WORKSPACE_PATH= "~/workspace"
+            echo 1
+            WORKSPACE_PATH=~/workspace
+            echo 2
             echo $WORKSPACE_PATH
+            echo 3
             APP_VERSION=$(cat "$WORKSPACE_PATH"/appversion.txt)
             
             echo $APP_VERSION
