@@ -48,10 +48,26 @@ commands:
 workflows:
   default:
     jobs:
-      - save-version-to-bash-env
-      - load:
+      #      - adjust-versions
+      #- save-version-to-bash-env
+      - build
+      - test:
           requires:
-            - save-version-to-bash-env
+            - build
+      - integration-test:
+          requires:
+            - build
+      - checkstyle:
+          requires:
+            - test
+            - integration-test
+      - docker-lint:
+          requires:
+            - build
+      - docker-build:
+          requires:
+            - docker-lint
+            - checkstyle
 
 
 jobs: # a collection of steps
@@ -71,17 +87,6 @@ jobs: # a collection of steps
       - save-bash-env
 
 
-  load:
-    docker:
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-      - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
-    working_directory: ~/repo # directory where steps will run
-    steps: # a collection of executable commands
-      - load-bash-env
-      - run: echo $POM_VERSION
-
   build: # runs not using Workflows must have a `build` job as entry point
     docker:
       # CircleCI maintains a library of pre-built images
@@ -95,37 +100,20 @@ jobs: # a collection of steps
     steps: # a collection of executable commands
       - checkout-restore-maven-cache
       - run: # Use mvn clean and package as the standard maven build phase
-          name: Build
+          name: Build app
           command: mvn -B -DskipTests clean package
+      - run:
+          name: Save app version to file
+          command: |
+            VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+            touch target/appversion.txt
+            $Version > target/appversion.txt
+            cat target/appversion.txt
       - persist_to_workspace:
           root: target
           paths:
             - ./*.jar
-      - run:
-          name: Add back-end ip to ansible inventory
-          command: |
-            #profile automatical added by circleci project parameters which are manually configured.
-            aws ec2 describe-instances --region us-east-1 --no-paginate \
-            --filters "Name=tag:Name,Values=backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-            --query "Reservations[*].Instances[*].PublicDnsName" \
-            --output text >> ~/project/.circleci/ansible/inventory.txt
-            cat ~/project/.circleci/ansible/inventory.txt
-      - persist_to_workspace:
-          root: ~/
-          paths:
-            - project/.circleci/ansible/inventory.txt
-
-      - run: |
-          echo "export FOO=BAR" >> $BASH_ENV
-      - run: |
-          # verify; optional step
-          echo $FOO
-      - run: |
-          cp $BASH_ENV bash.env
-      - persist_to_workspace:
-          root: .
-          paths:
-            - bash.env
+            - ./appversion.txt
 
 
  #     - store_artifacts: # store the uberjar as an artifact
@@ -189,20 +177,16 @@ jobs: # a collection of steps
       - checkout
       - setup_remote_docker
       - attach_workspace:
-          at: ~/repo/workspace
-      - run:
-          name: show workspace
-          command: |
-            pwd
-            ls
-            cd workspace
-            pwd
-            ls
+          at: ~/workspace
       - run:
           name: docker build
           command: |
-            docker build --build-arg JAR_FILE=workspace/*.jar -t com/spring_demo .
-      # TODO upload docker image - use filter only for main
+            APP_VERSION="$(cat ~/workspace/appversion.txt | base64)"
+            docker build --build-arg JAR_FILE=workspace/*.jar -t com/spring_demo:$APP_VERSION .
+      - run:
+          name: docker deploy
+          command: |
+            echo "not implemented"
 
   adjust-versions: # runs not using Workflows must have a `build` job as entry point
     docker:
