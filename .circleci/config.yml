@@ -49,9 +49,9 @@ workflows:
   default:
     jobs:
       - save-version-to-bash-env
-#      - load:
-#          requires:
-#            - save-version-to-bash-env
+      - load:
+          requires:
+            - save-version-to-bash-env
 
 
 jobs: # a collection of steps
