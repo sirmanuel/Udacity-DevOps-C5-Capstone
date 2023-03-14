@@ -80,7 +80,7 @@ jobs: # a collection of steps
       - persist_to_workspace:
           root: /target
           paths:
-            - /*.jar
+            - /demo-0.0.1.jar
 
  #     - store_artifacts: # store the uberjar as an artifact
  #         # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
