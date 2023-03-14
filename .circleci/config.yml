@@ -43,7 +43,7 @@ commands:
       - attach_workspace:
           at: ~/
       - run: |
-          cat bash.env >> $BASH_ENV
+          cat ~/bash.env >> $BASH_ENV
 
 workflows:
   default:
