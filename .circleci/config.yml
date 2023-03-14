@@ -94,7 +94,7 @@ jobs: # a collection of steps
           command: |
             VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
             touch target/appversion.txt
-            $Version > target/appversion.txt
+            $VERSION > target/appversion.txt
             cat target/appversion.txt
       - persist_to_workspace:
           root: target
