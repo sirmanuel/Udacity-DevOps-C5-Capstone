@@ -78,8 +78,9 @@ jobs: # a collection of steps
             pwd
             ls
       - persist_to_workspace:
+          root: target
           paths:
-            - target/*.jar
+            - ./*.jar
 
  #     - store_artifacts: # store the uberjar as an artifact
  #         # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
