@@ -111,23 +111,21 @@ jobs: # a collection of steps
 
   docker-lint:
     docker:
-      # Use the same Docker base as the project
-      - image: python:3.7.3-stretch
+      - image: circleci/openjdk:17.0.1-jdk-buster
     working_directory: ~/repo
     steps:
       - checkout
       - run:
-        name: install hadolint
-        command: |
-          wget -O /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-          chmod +x /tmp/hadolint
+          name: install hadolint
+          command: |
+            wget -O /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            chmod +x /tmp/hadolint
       - run:
-        name: run lint
-        command: |
-          # See local hadolint install instructions:   https://github.com/hadolint/hadolint
-          # This is linter for Dockerfiles
-          ./tmp/hadolint Dockerfile --ignore DL3042
-          
+          name: run lint
+          command: |
+            # See local hadolint install instructions:   https://github.com/hadolint/hadolint
+            # This is linter for Dockerfiles
+            ./tmp/hadolint Dockerfile --ignore DL3042
 
   adjust-versions: # runs not using Workflows must have a `build` job as entry point
     docker:
