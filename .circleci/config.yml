@@ -51,9 +51,23 @@ workflows:
       #      - adjust-versions
       #- save-version-to-bash-env
       - build
-      - read:
+      - test:
           requires:
             - build
+      - integration-test:
+          requires:
+            - build
+      - checkstyle:
+          requires:
+            - test
+            - integration-test
+      - docker-lint:
+          requires:
+            - build
+      - docker-build:
+          requires:
+            - docker-lint
+            - checkstyle
 
 
 
