@@ -36,7 +36,7 @@ commands:
         type: string
     steps:
       - run: |
-          echo "<< parameters.env_key >>=<< parameters.value >>" >> $BASH_ENV
+          echo "export << parameters.env_key >>=<< parameters.value >>" >> $BASH_ENV
       - run: |
           # verify; optional step
           printenv << parameters.env_key >>
@@ -81,9 +81,12 @@ jobs: # a collection of steps
     working_directory: ~/repo # directory where steps will run
     steps: # a collection of executable commands
       - checkout
+      - run:
+          VALUE=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+          echo $VALUE
       - create-env-var:
           env_key: J_POM_VERSION
-          value: mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec
+          value: $VALUE
 
   load:
     docker:
