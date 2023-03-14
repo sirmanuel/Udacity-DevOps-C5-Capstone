@@ -119,15 +119,14 @@ jobs: # a collection of steps
       - run:
         name: install hadolint
         command: |
-          wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-          chmod +x /bin/hadolint
-      # run lint!
+          wget -O /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+          chmod +x /tmp/hadolint
       - run:
         name: run lint
         command: |
           # See local hadolint install instructions:   https://github.com/hadolint/hadolint
           # This is linter for Dockerfiles
-          ./hadolint Dockerfile --ignore DL3042
+          ./tmp/hadolint Dockerfile --ignore DL3042
           
 
   adjust-versions: # runs not using Workflows must have a `build` job as entry point

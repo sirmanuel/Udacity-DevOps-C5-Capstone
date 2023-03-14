@@ -33,4 +33,4 @@ build/
 .vscode/
 
 ##### ignore installed software
-/hadolint
+/tmp/*
