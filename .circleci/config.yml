@@ -68,7 +68,7 @@ jobs: # a collection of steps
           NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
           echo "export POM_VERSION="$NEW_VALUE >> $BASH_ENV
       - run: printenv POM_VERSION
-      - save-bash-env
+      #- save-bash-env
 
 
   load:
