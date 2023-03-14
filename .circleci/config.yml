@@ -93,9 +93,9 @@ jobs: # a collection of steps
           name: Save app version to file
           command: |
             VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-            touch target/appversion.txt
-            $VERSION > target/appversion.txt
-            cat target/appversion.txt
+            touch ./target/appversion.txt
+            $VERSION > ./target/appversion.txt
+            cat ./target/appversion.txt
       - persist_to_workspace:
           root: target
           paths:
@@ -107,20 +107,6 @@ jobs: # a collection of steps
  #         # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
  #         path: target/demo-0.0.1-SNAPSHOT.jar
  #         # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
-
-  read:
-    docker:
-      - image: circleci/openjdk:17.0.1-jdk-buster
-    working_directory: ~/repo
-    steps:
-      - attach_workspace:
-          at: ~/workspace
-      - run:
-          name: read version
-          command: |
-            ls ~/workspace
-            APP_VERSION=$(cat ~/workspace/appversion.txt)
-            echo $APP_VERSION
 
   test:
     docker:
@@ -182,7 +168,7 @@ jobs: # a collection of steps
       - run:
           name: docker build
           command: |
-            APP_VERSION="$(cat ~/workspace/appversion.txt | base64)"
+            APP_VERSION=$(cat ~/workspace/appversion.txt)
             printenv APP_VERSION
             docker build --build-arg JAR_FILE=workspace/*.jar -t com/spring_demo:$APP_VERSION .
       - run:
