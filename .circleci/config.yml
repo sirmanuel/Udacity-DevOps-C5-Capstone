@@ -90,7 +90,7 @@ jobs: # a collection of steps
           echo $NEW_VALUE
       - create-env-var:
           env_key: J_POM_VERSION
-          env_value: $NEW_VALUE
+          env_value: NEW_VALUE
 
   load:
     docker:
