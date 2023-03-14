@@ -105,9 +105,9 @@ jobs: # a collection of steps
       - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
     working_directory: ~/repo # directory where steps will run
     steps: # a collection of executable commands
+      - checkout
       - create-env-var2
       - load-env-var2
-      - checkout
       - run: |
           export NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
           echo $NEW_VALUE
