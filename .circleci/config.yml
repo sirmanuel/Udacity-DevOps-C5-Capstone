@@ -107,9 +107,9 @@ jobs: # a collection of steps
           name: Save app version to file
           command: |
             APP_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-            echo APP_VERSION
+            echo $APP_VERSION
             touch ./target/appversion.txt
-            APP_VERSION > ./target/appversion.txt
+            $APP_VERSION > ./target/appversion.txt
             cat ./target/appversion.txt
       - persist_to_workspace:
           root: target
