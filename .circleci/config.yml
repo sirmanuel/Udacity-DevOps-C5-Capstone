@@ -29,37 +29,49 @@ commands:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
   create-env-var:
+    parameters:
+      env_key:
+        type: string
+      value:
+        type: string
     steps:
       - run: |
-          echo "export FOO=BAR" >> $BASH_ENV
+          echo "<< parameters.env_key >>=<< parameters.value >>" >> $BASH_ENV
       - run: |
           # verify; optional step
-          printenv FOO
+          printenv << parameters.env_key >>
       - run: |
-          cp $BASH_ENV bash.env
+          cp $BASH_ENV << parameters.env_key >>.env
       - persist_to_workspace:
           root: .
           paths:
-            - bash.env
+            - << parameters.env_key >>.env
   load-env-var:
+    env_key:
+      type: string
     steps:
       - attach_workspace:
           at: .
       - run: |
-          cat bash.env >> $BASH_ENV
+          cat << parameters.env_key >>.env >> $BASH_ENV
       - run: |
-          # verify; this should print 'BAR'
-          printenv FOO
+          # verify;
+          printenv << parameters.env_key >>
+
+
 
 workflows:
   default:
     jobs:
-      - asd
+      - save
+      - load:
+          requires:
+            - save
 
 
 
 jobs: # a collection of steps
-  asd:
+  save:
     docker:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -67,8 +79,22 @@ jobs: # a collection of steps
       - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
     working_directory: ~/repo # directory where steps will run
     steps: # a collection of executable commands
-      - create-env-var
-      - load-env-var
+      - checkout
+      - create-env-var:
+          env_key: J_POM_VERSION
+          value: mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec
+
+  load:
+    docker:
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+      - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
+    working_directory: ~/repo # directory where steps will run
+    steps: # a collection of executable commands
+      - load-env-var:
+          env_key: J_POM_VERSION
+      - echo $J_POM_VERSION
 
   build: # runs not using Workflows must have a `build` job as entry point
     docker:
