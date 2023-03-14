@@ -112,7 +112,8 @@ jobs: # a collection of steps
           echo "export J_POM_VERSION="$NEW_VALUE
           echo "export J_POM_VERSION="$NEW_VALUE >> $BASH_ENV
       - run: |
-          echo $BASH_ENV
+          printenv BASH_ENV
+          printenv J_POM_VERSION
       - create-env-var:
           env_key: J_POM_VERSION
           env_value: $BASH_ENV
