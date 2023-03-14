@@ -119,7 +119,7 @@ jobs: # a collection of steps
           name: read version
           command: |
             ls ~/workspace
-            APP_VERSION="$(cat ~/workspace/appversion.txt | base64)"
+            APP_VERSION=$(cat ~/workspace/appversion.txt | base64)
             printenv APP_VERSION
 
   test:
