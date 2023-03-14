@@ -32,18 +32,18 @@ commands:
     parameters:
       env_key:
         type: string
-      value:
+      env_value:
         type: string
     steps:
       - run: |
             # verify; optional step
             echo << parameters.env_key >>
-            echo << parameters.value >>
+            echo << parameters.env_value >>
       - run: |
-          echo "export << parameters.env_key >>=<< parameters.value >>" >> $BASH_ENV
+          echo "export << parameters.env_key >>=<< parameters.env_value >>" >> $BASH_ENV
       - run: |
           # verify; optional step
-          echo << parameters.env_key >>
+          echo $<< parameters.env_key >>
       - run: |
           cp $BASH_ENV << parameters.env_key >>.env
       - persist_to_workspace:
@@ -61,7 +61,7 @@ commands:
           cat << parameters.env_key >>.env >> $BASH_ENV
       - run: |
           # verify;
-          echo << parameters.env_key >>
+          echo $<< parameters.env_key >>
 
 
 
