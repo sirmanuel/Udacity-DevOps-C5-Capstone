@@ -28,76 +28,35 @@ commands:
           paths:
             - ~/.m2
           key: v1-dependencies-{{ checksum "pom.xml" }}
-  create-env-var:
-    parameters:
-      env_key:
-        type: string
-      env_value:
-        type: string
-    steps:
-      - run: |
-            # verify; optional step
-            echo << parameters.env_key >>
-            echo << parameters.env_value >>
-      - run: |
-          echo "export << parameters.env_key >>=<< parameters.env_value >>" >> $BASH_ENV
-      - run: |
-          # verify; optional step
-          printenv << parameters.env_key >>
-      - run: |
-          cp $BASH_ENV << parameters.env_key >>.env
-      - persist_to_workspace:
-          root: .
-          paths:
-            - << parameters.env_key >>.env
-  load-env-var:
-    parameters:
-      env_key:
-        type: string
-    steps:
-      - attach_workspace:
-          at: .
-      - run: |
-          cat << parameters.env_key >>.env >> $BASH_ENV
-      - run: |
-          # verify;
-          echo $<< parameters.env_key >>
 
-  create-env-var2:
+  save-bash-env:
     steps:
       - run: |
-          echo "export FOO=BAR" >> $BASH_ENV
-      - run: |
-          # verify; optional step
-          printenv FOO
-      - run: |
-          cp $BASH_ENV bash.env
+          cp $BASH_ENV ~/bash.env
       - persist_to_workspace:
-          root: .
+          root: ~
           paths:
             - bash.env
-  load-env-var2:
+
+  load-bash-env:
     steps:
       - attach_workspace:
-          at: .
+          at: ~
       - run: |
           cat bash.env >> $BASH_ENV
-      - run: |
-          # verify; this should print 'BAR'
-          printenv FOO
 
 workflows:
   default:
     jobs:
-      - save
-#      - load:
-#          requires:
-#            - save
+      - save-version-to-bash-env
+      - load:
+          requires:
+            - save
 
 
 
 jobs: # a collection of steps
-  save:
+  save-version-to-bash-env:
     docker:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
@@ -108,17 +67,10 @@ jobs: # a collection of steps
       - checkout
       - run: |
           NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
-          echo $NEW_VALUE
-          echo "export J_POM_VERSION="$NEW_VALUE
-          echo "export J_POM_VERSION="$NEW_VALUE >> $BASH_ENV
-      - run: |
-          printenv BASH_ENV
-          printenv J_POM_VERSION
-      - create-env-var:
-          env_key: J_POM_VERSION
-          env_value: $BASH_ENV
-      - run: |
-          echo $BASH_ENV
+          echo "export POM_VERSION="$NEW_VALUE >> $BASH_ENV
+      - run: printenv POM_VERSION
+      - save-bash-env
+
 
   load:
     docker:
@@ -128,9 +80,8 @@ jobs: # a collection of steps
       - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
     working_directory: ~/repo # directory where steps will run
     steps: # a collection of executable commands
-      - load-env-var:
-          env_key: J_POM_VERSION
-      - run: echo $J_POM_VERSION
+      - load-bash-env
+      - run: echo $POM_VERSION
 
   build: # runs not using Workflows must have a `build` job as entry point
     docker:
