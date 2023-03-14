@@ -87,7 +87,10 @@ jobs: # a collection of steps
       - checkout
       - run: |
           NEW_VALUE=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-          echo $VALUE
+          echo $NEW_VALUE
+      - run: |
+          NEW_VALUE2=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
+          echo $NEW_VALUE2
       - create-env-var:
           env_key: J_POM_VERSION
           value: $NEW_VALUE
