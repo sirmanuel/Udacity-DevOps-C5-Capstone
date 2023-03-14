@@ -86,7 +86,7 @@ jobs: # a collection of steps
     steps: # a collection of executable commands
       - checkout
       - run: |
-          NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
+          export NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
           echo $NEW_VALUE
       - create-env-var:
           env_key: J_POM_VERSION
