@@ -108,11 +108,11 @@ jobs: # a collection of steps
           command: |
             echo 1
             echo $(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-            APP_VERSION= $(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-            printenv APP_VERSION
+            OLD_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+            printenv OLD_VERSION
             touch ./target/appversion.txt
             echo 2
-            $APP_VERSION > ./target/appversion.txt
+            $OLD_VERSION > ./target/appversion.txt
             echo 3
             cat ./target/appversion.txt
       - persist_to_workspace:
