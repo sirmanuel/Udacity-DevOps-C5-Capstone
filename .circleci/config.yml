@@ -37,13 +37,13 @@ commands:
     steps:
       - run: |
             # verify; optional step
-            printer << parameters.env_key >>
-            printer << parameters.value >>
+            echo << parameters.env_key >>
+            echo << parameters.value >>
       - run: |
           echo "export << parameters.env_key >>=<< parameters.value >>" >> $BASH_ENV
       - run: |
           # verify; optional step
-          printer << parameters.env_key >>
+          echo << parameters.env_key >>
       - run: |
           cp $BASH_ENV << parameters.env_key >>.env
       - persist_to_workspace:
