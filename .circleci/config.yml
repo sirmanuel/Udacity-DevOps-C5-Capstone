@@ -109,8 +109,11 @@ jobs: # a collection of steps
             echo 1
             echo $(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
             echo 1.5
-            OLD_VERSION= $(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
+            mvn -version
+            OLD_VERSION= mvn help:evaluate -Dexpression='project.version' -q -DforceStdout
+            echo 1.6
             printenv OLD_VERSION
+            echo 1.8
             touch ./target/appversion.txt
             echo 2
             $OLD_VERSION > ./target/appversion.txt
