@@ -37,13 +37,13 @@ commands:
     steps:
       - run: |
             # verify; optional step
-            printenv << parameters.env_key >>
-            printenv << parameters.value >>
+            printer << parameters.env_key >>
+            printer << parameters.value >>
       - run: |
           echo "export << parameters.env_key >>=<< parameters.value >>" >> $BASH_ENV
       - run: |
           # verify; optional step
-          printenv << parameters.env_key >>
+          printer << parameters.env_key >>
       - run: |
           cp $BASH_ENV << parameters.env_key >>.env
       - persist_to_workspace:
@@ -61,7 +61,7 @@ commands:
           cat << parameters.env_key >>.env >> $BASH_ENV
       - run: |
           # verify;
-          printenv << parameters.env_key >>
+          echo << parameters.env_key >>
 
 
 
@@ -86,11 +86,8 @@ jobs: # a collection of steps
     steps: # a collection of executable commands
       - checkout
       - run: |
-          NEW_VALUE=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+          NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
           echo $NEW_VALUE
-      - run: |
-          NEW_VALUE2=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
-          echo $NEW_VALUE2
       - create-env-var:
           env_key: J_POM_VERSION
           value: $NEW_VALUE
@@ -144,7 +141,7 @@ jobs: # a collection of steps
           echo "export FOO=BAR" >> $BASH_ENV
       - run: |
           # verify; optional step
-          printenv FOO
+          echo $FOO
       - run: |
           cp $BASH_ENV bash.env
       - persist_to_workspace:
