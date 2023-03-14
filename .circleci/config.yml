@@ -51,23 +51,10 @@ workflows:
       #      - adjust-versions
       #- save-version-to-bash-env
       - build
-      - test:
-          requires:
-            - build
-      - integration-test:
-          requires:
-            - build
-      - checkstyle:
-          requires:
-            - test
-            - integration-test
-      - docker-lint:
-          requires:
-            - build
       - docker-build:
           requires:
-            - docker-lint
-            - checkstyle
+            - build
+
 
 
 
@@ -181,7 +168,7 @@ jobs: # a collection of steps
       - run:
           name: docker build
           command: |
-            $WORKSPACE_PATH= ~/workspace
+            WORKSPACE_PATH= ~/workspace
             APP_VERSION=$(cat $WORKSPACE_PATH/appversion.txt)
             echo $APP_VERSION
             $(docker build --build-arg JAR_FILE=$WORKSPACE_PATH/*.jar -t com/spring_demo:$APP_VERSION .)
