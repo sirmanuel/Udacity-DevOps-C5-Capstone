@@ -63,7 +63,28 @@ commands:
           # verify;
           echo $<< parameters.env_key >>
 
-
+  create-env-var2:
+    steps:
+      - run: |
+          echo "export FOO=BAR" >> $BASH_ENV
+      - run: |
+          # verify; optional step
+          printenv FOO
+      - run: |
+          cp $BASH_ENV bash.env
+      - persist_to_workspace:
+          root: .
+          paths:
+            - bash.env
+  load-env-var2:
+    steps:
+      - attach_workspace:
+          at: .
+      - run: |
+          cat bash.env >> $BASH_ENV
+      - run: |
+          # verify; this should print 'BAR'
+          printenv FOO
 
 workflows:
   default:
@@ -84,6 +105,8 @@ jobs: # a collection of steps
       - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
     working_directory: ~/repo # directory where steps will run
     steps: # a collection of executable commands
+      - create-env-var2
+      - load-env-var2
       - checkout
       - run: |
           export NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
