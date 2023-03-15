@@ -168,8 +168,9 @@ jobs: # a collection of steps
       - run:
           name: docker build
           command: |
-            ls
-            docker build --build-arg JAR_FILE=*.jar -t com/spring_demo:v0.0.1 .
+            APP_VERSION=$(cat appversion.txt)
+            echo $APP_VERSION
+            docker build --build-arg JAR_FILE=*.jar -t com/spring_demo:v"$APP_VERSION" .
       - run:
           name: docker deploy
           command: |
