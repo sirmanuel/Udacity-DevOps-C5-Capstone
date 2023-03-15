@@ -169,7 +169,7 @@ jobs: # a collection of steps
           name: docker build
           command: |
             ls ~/workspace
-            docker build --build-arg JAR_FILE=~/workspace/*.jar -t com/spring_demo .
+            docker build --build-arg JAR_FILE=~/workspace/demo-0.0.1.jar -t com/spring_demo:v0.0.1 .
       - run:
           name: docker deploy
           command: |
