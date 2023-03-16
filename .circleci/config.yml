@@ -1,0 +1,239 @@
+version: 2.1
+orbs:
+  # The maven orb contains a set of prepackaged circleci configuration you can use repeatedly in your configurations files
+  # Orb commands and jobs help you with common scripting around a language/tool
+  # so you dont have to copy and paste it everywhere.
+  # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/maven
+  maven: circleci/maven@1.4.1
+
+executors:
+  openjdk17:
+    docker:
+      - image: circleci/openjdk:17.0.1-jdk-buster
+
+commands:
+  checkout-restore-maven-cache:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    steps:
+      - checkout  # check out source code to working directory
+      # Download and cache dependencies
+      - restore_cache: # restore the saved cache after the first run or if `pom.xml` has changed
+          # Read about caching dependencies: https://circleci.com/docs/2.0/caching/
+          keys:
+            - v1-dependencies-{{ checksum "pom.xml" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run: mvn dependency:go-offline # gets the project dependencies and use offline mode
+      - save_cache:
+          paths:
+            - ~/.m2
+          key: v1-dependencies-{{ checksum "pom.xml" }}
+
+  save-bash-env:
+    steps:
+      - run: |
+          cp $BASH_ENV ~/bash.env
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - bash.env
+
+  load-bash-env:
+    steps:
+      - attach_workspace:
+          at: ~/
+      - run: |
+          cat ~/bash.env >> $BASH_ENV
+
+workflows:
+  default:
+    jobs:
+      #      - adjust-versions
+      #- save-version-to-bash-env
+      - build
+      - docker-build:
+          requires:
+            - build
+
+
+
+
+jobs: # a collection of steps
+  save-version-to-bash-env:
+    docker:
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+      - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
+    working_directory: ~/repo # directory where steps will run
+    steps: # a collection of executable commands
+      - checkout
+      - run: |
+          NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
+          echo "export POM_VERSION="$NEW_VALUE >> $BASH_ENV
+      - run: echo POM_VERSION
+      - save-bash-env
+
+
+  build: # runs not using Workflows must have a `build` job as entry point
+    docker:
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+      - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
+    working_directory: ~/repo # directory where steps will run
+    environment:
+      # Customize the JVM maximum heap limit
+      MAVEN_OPTS: -Xmx3200m
+    steps: # a collection of executable commands
+      - checkout-restore-maven-cache
+      - run: # Use mvn clean and package as the standard maven build phase
+          name: Build app
+          command: mvn -B -DskipTests clean package
+      - run:
+          name: Save app version to file
+          command: |
+            APP_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+            echo $APP_VERSION > target/appversion.txt
+            cat target/appversion.txt
+      - persist_to_workspace:
+          root: target
+          paths:
+            - ./*.jar
+            - ./appversion.txt
+
+
+ #     - store_artifacts: # store the uberjar as an artifact
+ #         # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
+ #         path: target/demo-0.0.1-SNAPSHOT.jar
+ #         # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
+
+  test:
+    docker:
+      - image: circleci/openjdk:17.0.1-jdk-buster
+    working_directory: ~/repo
+    steps:
+      - checkout-restore-maven-cache
+      # Then run your tests!
+      - run:
+          name: Test
+          command: mvn test
+      - store_test_results: # uploads the test metadata from the `target/surefire-reports` directory so that it can show up in the CircleCI dashboard.
+          # Upload test results for display in Test Summary: https://circleci.com/docs/2.0/collect-test-data/
+          path: target/surefire-reports
+
+  integration-test:
+    docker:
+      - image: circleci/openjdk:17.0.1-jdk-buster
+    working_directory: ~/repo
+    steps:
+      - checkout-restore-maven-cache
+      - run: mvn integration-test
+
+  checkstyle:
+    docker:
+      - image: circleci/openjdk:17.0.1-jdk-buster
+    working_directory: ~/repo
+    steps:
+      - checkout-restore-maven-cache
+      - run: mvn checkstyle:checkstyle
+
+  docker-lint:
+    docker:
+      - image: circleci/openjdk:17.0.1-jdk-buster
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: install hadolint
+          command: |
+            curl https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 --create-dirs -o tmp/hadolint &&\
+            chmod +x tmp/hadolint
+      - run:
+          name: docker lint
+          command: |
+            # See local hadolint install instructions: https://github.com/hadolint/hadolint
+            # This is linter for Dockerfiles
+            ./tmp/hadolint Dockerfile --ignore DL3042
+
+  docker-build:
+    docker:
+      - image: docker:17.05.0-ce-git
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: .
+      - run:
+          name: docker build
+          command: |
+            APP_VERSION=$(cat appversion.txt)
+            echo $APP_VERSION
+            docker build --build-arg JAR_FILE=*.jar -t com/spring_demo:v"$APP_VERSION" .
+      - run:
+          name: docker deploy
+          command: |
+            echo "not implemented"
+
+  adjust-versions: # runs not using Workflows must have a `build` job as entry point
+    docker:
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+      - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
+
+    working_directory: ~/repo # directory where steps will run
+    environment:
+      # Customize the JVM maximum heap limit
+      MAVEN_OPTS: -Xmx3200m
+    steps:
+      - checkout
+      - run:
+          name: Cut new release
+          command: |
+            # assemble current and new version numbers
+            OLD_VERSION=$(mvn -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+            # Windows -> mvn help:evaluate -Dexpression='project.version' -q -DforceStdout
+            echo $OLD_VERSION
+            
+            MAJ_VERSION=$(echo "$OLD_VERSION" | cut -d '.' -f 1)
+            MIN_VERSION=$(echo "$OLD_VERSION" | cut -d '.' -f 2)
+            PATCH_VERSION=$(echo "$OLD_VERSION" | cut -d '.' -f 3)
+            
+            BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+            echo $BRANCH_NAME
+            
+            if [[ "$BRANCH_NAME" == 'master' ]];
+            then
+              if [[ "$OLD_VERSION" == *-SNAPSHOT ]];
+              then
+                # increment minor version number
+                NEW_PATCH_VERSION=$(($PATCH_VERSION + 1))
+                MASTER_VERSION="$MAJ_VERSION.$MIN_VERSION.$NEW_PATCH_VERSION"
+                mvn versions:set versions:commit -DnewVersion=$MASTER_VERSION -DprocessAllModules=true
+              else
+                # TODO How to update - undefined number incrementation 
+                echo "No version update is made";
+              fi;
+            
+              exit 0;
+            fi
+            
+            # increment minor version number
+            NEW_PATCH_VERSION=$(($PATCH_VERSION + 1))
+            DEV_VERSION="$MAJ_VERSION.$MIN_VERSION.$NEW_PATCH_VERSION-$BRANCH_NAME-SNAPSHOT"
+            
+            echo "Releasing $OLD_VERSION as $DEV_VERSION"
+            mvn versions:set versions:commit -DnewVersion=$DEV_VERSION -DprocessAllModules=true
+            
+            # setup git
+            #git config user.name "Release Script"
+            #git config user.email "builds@test.com"
+            
+            # commit and tag
+            #git add pom.xml
+            #git commit -m "release: $NEW_VERSION"
+            #git tag "$NEW_VERSION"
+
+          
