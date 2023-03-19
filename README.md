@@ -1,3 +1,5 @@
+[![<pipeline status>](https://circleci.com/gh/sirmanuel/Udacity-DevOps-C5-Capstone.svg?style=svg)](https://app.circleci.com/pipelines/github/sirmanuel/Udacity-DevOps-C5-Capstone)
+
 # Udacity-DevOps-C5-Capstone
 This Project use a CICD of CIRCLECI to deploy a Java Application to AWS EKS.
 The deployment is configured as a rolling deployment defined in the k8s.yaml.
