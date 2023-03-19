@@ -1,10 +1,11 @@
 version: 2.1
+# This pipeline was inspired by https://github.com/CircleCI-Public/circleci-demo-aws-ecs-ecr/blob/orbs/.circleci/config.yml
 orbs:
   # The maven orb contains a set of prepackaged circleci configuration you can use repeatedly in your configurations files
   # Orb commands and jobs help you with common scripting around a language/tool
   # so you dont have to copy and paste it everywhere.
   # See the orb documentation here: https://circleci.com/developer/orbs/orb/circleci/maven
-  maven: circleci/maven@1.4.1
+  aws-ecr: circleci/aws-ecr@8.2.1
 
 executors:
   openjdk17:
@@ -45,41 +46,44 @@ commands:
       - run: |
           cat ~/bash.env >> $BASH_ENV
 
-workflows:
-  default:
-    jobs:
-      #      - adjust-versions
-      #- save-version-to-bash-env
-      - build
-      - docker-build:
-          requires:
-            - build
-
-
-
-
-jobs: # a collection of steps
   save-version-to-bash-env:
-    docker:
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-      - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
-    working_directory: ~/repo # directory where steps will run
     steps: # a collection of executable commands
-      - checkout
       - run: |
           NEW_VALUE=$(mvn help:evaluate -Dexpression='project.version' -q -DforceStdout)
           echo "export POM_VERSION="$NEW_VALUE >> $BASH_ENV
-      - run: echo POM_VERSION
-      - save-bash-env
+      - run: echo $POM_VERSION
 
+workflows:
+  default:
+    jobs:
+      #- adjust-versions
+      - build
+      - checkstyle:
+          requires:
+            - build
+      - test:
+          requires:
+            - checkstyle
+      - integration-test:
+          requires:
+            - checkstyle
+      - docker-lint:
+          requires:
+            - checkstyle
+      - docker-build:
+          requires:
+            - docker-lint
+            - integration-test
+            - test
+      - eks-deploy:
+          requires:
+            - docker-build
 
+jobs:
   build: # runs not using Workflows must have a `build` job as entry point
     docker:
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
       - image: circleci/openjdk:17.0.1-jdk-buster # run the steps with Docker with this image as the primary container; this is where all `steps` will run
     working_directory: ~/repo # directory where steps will run
     environment:
@@ -102,12 +106,6 @@ jobs: # a collection of steps
             - ./*.jar
             - ./appversion.txt
 
-
- #     - store_artifacts: # store the uberjar as an artifact
- #         # Upload test summary for display in Artifacts: https://circleci.com/docs/2.0/artifacts/
- #         path: target/demo-0.0.1-SNAPSHOT.jar
- #         # See https://circleci.com/docs/2.0/deployment-integrations/ for deploy examples
-
   test:
     docker:
       - image: circleci/openjdk:17.0.1-jdk-buster
@@ -128,6 +126,7 @@ jobs: # a collection of steps
     working_directory: ~/repo
     steps:
       - checkout-restore-maven-cache
+      # Then run your integration tests!
       - run: mvn integration-test
 
   checkstyle:
@@ -158,7 +157,7 @@ jobs: # a collection of steps
 
   docker-build:
     docker:
-      - image: docker:17.05.0-ce-git
+      - image: cimg/aws:2023.03
     working_directory: ~/repo
     steps:
       - checkout
@@ -166,16 +165,78 @@ jobs: # a collection of steps
       - attach_workspace:
           at: .
       - run:
+          name: Setup common environment variables
+          command: |
+            TMP_APP_VERSION=$(cat appversion.txt)
+            echo "App-Version: " $TMP_APP_VERSION
+            echo 'export APP_VERSION='$TMP_APP_VERSION >> $BASH_ENV
+            TMP_FULL_IMAGE_NAME="$AWS_ECR_REGISTRY_ID".dkr.ecr."$AWS_REGION".amazonaws.com/"$AWS_ECR_REPOSITORY":v"$TMP_APP_VERSION"
+            echo 'export FULL_IMAGE_NAME='$TMP_FULL_IMAGE_NAME >> $BASH_ENV
+      - run:
           name: docker build
           command: |
-            APP_VERSION=$(cat appversion.txt)
-            echo $APP_VERSION
-            docker build --build-arg JAR_FILE=*.jar -t com/spring_demo:v"$APP_VERSION" .
+            echo "App-Version: "$APP_VERSION
+            echo "Full image name: "$FULL_IMAGE_NAME
+            docker build --build-arg JAR_FILE=*.jar -t $FULL_IMAGE_NAME .
+            echo docker images
       - run:
-          name: docker deploy
+          name: Test image
           command: |
-            echo "not implemented"
+            docker run -d -p 8080:8080 --name built-image $FULL_IMAGE_NAME
+            sleep 10
+            docker run --network container:built-image appropriate/curl --retry 10 --retry-connrefused http://localhost:8080/ping | grep "pong"
+      - aws-ecr/ecr-login:
+          registry-id: AWS_ECR_REGISTRY_ID
+          aws-access-key-id: AWS_ACCESS_KEY_ID
+          aws-secret-access-key: AWS_SECRET_ACCESS_KEY
+          region: $AWS_REGION
+      - aws-ecr/push-image:
+          repo: $AWS_ECR_REPOSITORY
+          region: $AWS_REGION
+          registry-id: AWS_ECR_REGISTRY_ID
+          tag: v$APP_VERSION
 
+  eks-deploy:
+    docker:
+      - image: cimg/aws:2023.03
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run:
+          name: Setup common environment variables
+          command: |
+            TMP_APP_VERSION=$(cat appversion.txt)
+            echo 'export APP_VERSION='$TMP_APP_VERSION >> $BASH_ENV
+      - run:
+          name: edit k8s deployment file
+          command: |
+            sed -i 's@$AWS_ECR_REGISTRY_ID@'"$AWS_ECR_REGISTRY_ID"'@' ./k8s.yaml
+            sed -i 's@$AWS_REGION@'"$AWS_REGION"'@' ./k8s.yaml
+            sed -i 's@$AWS_ECR_REPOSITORY@'"$AWS_ECR_REPOSITORY"'@' ./k8s.yaml
+            sed -i 's@$APP_VERSION@'"$APP_VERSION"'@' ./k8s.yaml
+            cat ./k8s.yaml
+      - run:
+          name: update kubeconfig
+          command: |
+            aws eks update-kubeconfig --name udacity-devops-c5-capstone-cluster --region $AWS_REGION
+      - run:
+          name: deploy to eks
+          command: |
+            kubectl apply -f k8s.yaml
+      - run:
+          name: Test deployment (Please manually tear down AWS resources after use, if desired)
+          command: |
+            # see https://kubernetes.io/docs/reference/kubectl/jsonpath/
+            # alternative you can use https://www.baeldung.com/linux/jq-command-json
+            EKS_ENDPOINT=$(kubectl get services -o json | jq -r '.items[] | select(.metadata.name=="spring-demo-service") | .status.loadBalancer.ingress[0].hostname')
+            for attempt in {1..50}; do
+              curl -s --retry 10 http://$EKS_ENDPOINT/ping | grep -E "pong"
+            done
+      
+
+  #the folowing step is in progress and not part of the workflow yet
   adjust-versions: # runs not using Workflows must have a `build` job as entry point
     docker:
       # CircleCI maintains a library of pre-built images
