@@ -146,14 +146,14 @@ jobs:
       - run:
           name: install hadolint
           command: |
-            curl https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 --create-dirs -o tmp/hadolint &&\
-            chmod +x tmp/hadolint
+            wget -O /tmp/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            chmod +x /tmp/hadolint
       - run:
           name: docker lint
           command: |
             # See local hadolint install instructions: https://github.com/hadolint/hadolint
             # This is linter for Dockerfiles
-            ./tmp/hadolint Dockerfile --ignore DL3042
+            ./tmp/hadolint Dockerfile
 
   docker-build:
     docker:
