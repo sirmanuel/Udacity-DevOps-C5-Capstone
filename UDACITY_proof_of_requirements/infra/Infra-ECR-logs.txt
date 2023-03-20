@@ -1,0 +1,10 @@
+wathall@wathall-VirtualBox:~/gitrepo/sirmanuel/Udacity-DevOps-C5-Capstone/infra$ make deploy-ecr
+aws ecr create-repository \
+    --repository-name spring_demo \
+    --image-scanning-configuration scanOnPush=true \
+    --region us-east-1 \
+--profile default
+
+An error occurred (RepositoryAlreadyExistsException) when calling the CreateRepository operation: The repository with name 'spring_demo' already exists in the registry with id '409620949289'
+make: *** [Makefile:24: deploy-ecr] Error 254
+wathall@wathall-VirtualBox:~/gitrepo/sirmanuel/Udacity-DevOps-C5-Capstone/infra$ 
